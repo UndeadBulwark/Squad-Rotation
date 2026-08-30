@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squad Rotation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F1115;
+    --surface: #171A21;
+    --surface-2: #1F2430;
+    --line: #2A303D;
+    --gold: #D4A537;
+    --teal: #4FA8A0;
+    --text: #E7E9EE;
+    --text-dim: #8B93A3;
+    --danger: #C1554A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .app{
+    max-width:920px;
+    margin:0 auto;
+    padding:32px 20px 64px;
+  }
+  header{
+    margin-bottom:28px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px;
+  }
+  h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:32px;
+    letter-spacing:0.5px;
+    margin:0 0 6px;
+  }
+  header p{
+    color:var(--text-dim);
+    margin:0;
+    font-size:14px;
+  }
+  h2{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:18px;
+    letter-spacing:0.3px;
+    margin:0 0 4px;
+    color:var(--text);
+  }
+  h2 + p.hint{
+    color:var(--text-dim);
+    font-size:13px;
+    margin:0 0 14px;
+  }
+
+  .squad-board{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:12px;
+    margin-bottom:24px;
+  }
+  @media (max-width:760px){ .squad-board{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:460px){ .squad-board{grid-template-columns:1fr;} }
+
+  .slot{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:14px 14px 12px;
+    display:flex;
+    flex-direction:column;
+    min-height:132px;
+  }
+  .slot.lead{ border-top:3px solid var(--gold); }
+  .slot.teammate{ border-top:3px solid var(--teal); }
+  .slot-role{
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:8px;
+  }
+  .slot.lead .slot-role{color:var(--gold);}
+  .slot.teammate.filled .slot-role{color:var(--teal);}
+
+  .lead-name-input{
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--line);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    padding:4px 0;
+    width:100%;
+    margin-bottom:10px;
+  }
+  .lead-name-input:focus{outline:none;border-bottom-color:var(--gold);}
+  .lead-name-input::placeholder{color:var(--text-dim);font-weight:400;}
+
+  .slot-name{ font-size:15px; font-weight:600; margin-bottom:10px; word-break:break-word; }
+  .slot-empty-label{ color:var(--text-dim); font-size:13px; font-style:italic; margin-bottom:10px; }
+
+  .played-count{ font-size:22px; font-weight:700; font-family:'Oswald',sans-serif; }
+  .played-label{ font-size:11px; color:var(--text-dim); margin-bottom:auto; }
+
+  .slot-action{ margin-top:10px; }
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    border:1px solid var(--line);
+    background:var(--surface-2);
+    color:var(--text);
+    border-radius:4px;
+    padding:7px 10px;
+    cursor:pointer;
+    width:100%;
+  }
+  .btn:hover{border-color:var(--text-dim);}
+  .btn.small{width:auto;padding:5px 9px;font-size:12px;}
+  .btn.danger{color:var(--danger);}
+  .btn.danger:hover{border-color:var(--danger);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+  .match-panel{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:16px 18px;
+    margin-bottom:32px;
+    flex-wrap:wrap;
+  }
+  .match-panel p{ margin:0; color:var(--text-dim); font-size:13px; max-width:420px; }
+  #endMatchBtn{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:0.4px;
+    background:var(--teal);
+    color:#0F1115;
+    border:none;
+    border-radius:4px;
+    padding:12px 22px;
+    font-size:15px;
+    cursor:pointer;
+    width:auto;
+  }
+  #endMatchBtn:hover{filter:brightness(1.08);}
+
+  .bench-section{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:18px;
+    margin-bottom:20px;
+  }
+  #addForm{ display:flex; gap:8px; margin-bottom:16px; }
+  #addForm input{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:4px;
+    padding:9px 10px;
+    font-size:14px;
+    font-family:'Inter',sans-serif;
+  }
+  #addForm input:focus{outline:none;border-color:var(--teal);}
+  #addForm button{
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:4px;
+    padding:9px 16px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  #addForm button:hover{border-color:var(--teal);}
+
+  .bench-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .bench-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px 12px;
+  }
+  .bench-item .position{
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    color:var(--text-dim);
+    width:22px;
+  }
+  .bench-item .name{ flex:1; font-weight:500; font-size:14px; word-break:break-word; }
+  .bench-item .count{ font-family:'Oswald',sans-serif; font-size:13px; color:var(--text-dim); white-space:nowrap; }
+  .bench-item .count b{ color:var(--text); font-size:15px; }
+  .bench-item .actions{ display:flex; gap:6px; }
+  .empty-state{ color:var(--text-dim); font-size:13px; font-style:italic; padding:8px 2px; }
+
+  footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:8px;
+  }
+  footer p{ color:var(--text-dim); font-size:12px; margin:0; }
+  #resetBtn{width:auto;}
+
+  .setup-screen{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-top:3px solid var(--gold);
+    border-radius:6px;
+    padding:24px;
+    max-width:420px;
+    margin:0 auto 24px;
+  }
+  .setup-screen h2{ margin-bottom:6px; }
+  .setup-screen .hint{ color:var(--text-dim); font-size:13px; margin:0 0 16px; }
+  #setupForm{ display:flex; gap:8px; }
+  #setupForm input{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:4px;
+    padding:9px 10px;
+    font-size:14px;
+    font-family:'Inter',sans-serif;
+  }
+  #setupForm input:focus{outline:none;border-color:var(--gold);}
+  #setupForm button{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    background:var(--gold);
+    color:#0F1115;
+    border:none;
+    border-radius:4px;
+    padding:9px 18px;
+    font-size:14px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  #setupForm button:hover{filter:brightness(1.08);}
+
+  .setup-screen.hidden, .main-app.hidden{ display:none; }
+
+  .lead-name-static{
+    font-size:15px;
+    font-weight:600;
+    margin-bottom:2px;
+    word-break:break-word;
+  }
+  .lead-rename{
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:11px;
+    padding:0;
+    margin-bottom:8px;
+    cursor:pointer;
+    text-decoration:underline;
+    text-align:left;
+    width:auto;
+  }
+  .lead-rename:hover{color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>Squad Rotation</h1>
+    <p>Track who's in the party and how many matches each person has played.</p>
+  </header>
+
+  <div id="setupScreen" class="setup-screen">
+    <h2>Set your party lead</h2>
+    <p class="hint">This is fixed for the whole session — it won't change between matches.</p>
+    <form id="setupForm">
+      <input type="text" id="setupLeadInput" placeholder="Party lead name" maxlength="24" autocomplete="off" required>
+      <button type="submit">Start</button>
+    </form>
+  </div>
+
+  <div id="mainApp" class="main-app">
+
+    <div class="squad-board" id="squadBoard"></div>
+
+    <div class="match-panel">
+      <p>Ending a match adds one play to the lead and squad, clears the 4 teammate slots, and auto-fills them with whoever on the bench has played the fewest matches.</p>
+      <button id="endMatchBtn">End Match</button>
+    </div>
+
+    <div class="bench-section">
+      <h2>Bench</h2>
+      <p class="hint">Ordered by fewest plays first — that's who fills the next roster.</p>
+      <form id="addForm">
+        <input type="text" id="newPlayerInput" placeholder="Add a player to the bench" maxlength="24" autocomplete="off">
+        <button type="submit">Add</button>
+      </form>
+      <ul class="bench-list" id="benchList"></ul>
+    </div>
+
+    <footer>
+      <p>Saved automatically in this browser.</p>
+      <button class="btn danger" id="resetBtn" type="button">Clear all data</button>
+    </footer>
+
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'squad-rotation-state-v2';
+
+  function defaultState(){
+    return {
+      lead: { name: '', played: 0 },
+      squad: [null, null, null, null], // player id or null
+      players: {} // id -> { id, name, played, joinedAt }
+    };
+  }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      const parsed = JSON.parse(raw);
+      if(!parsed.lead || !parsed.squad || !parsed.players) return defaultState();
+      return parsed;
+    }catch(e){
+      return defaultState();
+    }
+  }
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  let state = load();
+  let nextId = Object.keys(state.players).reduce((m,k)=>Math.max(m, parseInt(k,10)||0), 0) + 1;
+
+  function benchPlayers(){
+    const inSquad = new Set(state.squad.filter(Boolean));
+    return Object.values(state.players)
+      .filter(p => !inSquad.has(p.id))
+      .sort((a,b) => a.played - b.played || a.joinedAt - b.joinedAt);
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function render(){
+    const hasLead = !!state.lead.name;
+    document.getElementById('setupScreen').classList.toggle('hidden', hasLead);
+    document.getElementById('mainApp').classList.toggle('hidden', !hasLead);
+    if(!hasLead) return;
+    renderSquad();
+    renderBench();
+    save();
+  }
+
+  function renderSquad(){
+    const board = document.getElementById('squadBoard');
+    let html = '';
+
+    html += `
+      <div class="slot lead">
+        <div class="slot-role">Party Lead</div>
+        <div class="lead-name-static">${escapeHtml(state.lead.name)}</div>
+        <button class="lead-rename" id="leadRenameBtn" type="button">Rename</button>
+        <div class="played-label">Matches played</div>
+        <div class="played-count">${state.lead.played}</div>
+      </div>
+    `;
+
+    const bench = benchPlayers();
+    state.squad.forEach((pid, idx) => {
+      if(pid && state.players[pid]){
+        const p = state.players[pid];
+        html += `
+          <div class="slot teammate filled">
+            <div class="slot-role">Teammate</div>
+            <div class="slot-name">${escapeHtml(p.name)}</div>
+            <div class="played-label">Matches played</div>
+            <div class="played-count">${p.played}</div>
+            <div class="slot-action">
+              <button class="btn" data-action="bench" data-id="${p.id}">Send to bench</button>
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="slot teammate">
+            <div class="slot-role">Teammate</div>
+            <div class="slot-empty-label">Empty slot</div>
+            <div class="slot-action">
+              <button class="btn" data-action="fill" data-slot="${idx}" ${bench.length===0 ? 'disabled' : ''}>
+                ${bench.length===0 ? 'No one on bench' : 'Fill slot'}
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    board.innerHTML = html;
+
+    document.getElementById('leadRenameBtn').addEventListener('click', ()=>{
+      const name = prompt('New party lead name:', state.lead.name);
+      if(name === null) return;
+      const trimmed = name.trim();
+      if(trimmed) state.lead.name = trimmed;
+      render();
+    });
+
+    board.querySelectorAll('[data-action="bench"]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = parseInt(btn.dataset.id,10);
+        const slotIdx = state.squad.indexOf(id);
+        if(slotIdx !== -1) state.squad[slotIdx] = null;
+        render();
+      });
+    });
+
+    board.querySelectorAll('[data-action="fill"]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const slotIdx = parseInt(btn.dataset.slot,10);
+        const next = benchPlayers()[0];
+        if(next){
+          state.squad[slotIdx] = next.id;
+          render();
+        }
+      });
+    });
+  }
+
+  function renderBench(){
+    const list = document.getElementById('benchList');
+    const bench = benchPlayers();
+
+    if(bench.length === 0){
+      list.innerHTML = '<li class="empty-state">No one on the bench yet. Add a player above.</li>';
+      return;
+    }
+
+    list.innerHTML = bench.map((p, i) => `
+      <li class="bench-item">
+        <span class="position">#${i+1}</span>
+        <span class="name">${escapeHtml(p.name)}</span>
+        <span class="count">Played <b>${p.played}</b></span>
+        <span class="actions">
+          <button class="btn small danger" data-action="remove" data-id="${p.id}">Remove</button>
+        </span>
+      </li>
+    `).join('');
+
+    list.querySelectorAll('[data-action="remove"]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = parseInt(btn.dataset.id,10);
+        if(!confirm('Remove this player completely? Their play count will be lost.')) return;
+        delete state.players[id];
+        const slotIdx = state.squad.indexOf(id);
+        if(slotIdx !== -1) state.squad[slotIdx] = null;
+        render();
+      });
+    });
+  }
+
+  document.getElementById('setupForm').addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const input = document.getElementById('setupLeadInput');
+    const name = input.value.trim();
+    if(!name) return;
+    state.lead.name = name;
+    render();
+  });
+
+  document.getElementById('addForm').addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const input = document.getElementById('newPlayerInput');
+    const name = input.value.trim();
+    if(!name) return;
+    const id = nextId++;
+    state.players[id] = { id, name, played: 0, joinedAt: Date.now() };
+    input.value = '';
+    render();
+  });
+
+  document.getElementById('endMatchBtn').addEventListener('click', ()=>{
+    // Add a play to the lead and everyone currently in the squad.
+    state.lead.played += 1;
+    state.squad.forEach(pid => {
+      if(pid && state.players[pid]) state.players[pid].played += 1;
+    });
+
+    // Clear the roster, then auto-fill it with whoever now has the fewest plays.
+    state.squad = [null, null, null, null];
+    const next = benchPlayers();
+    for(let i = 0; i < 4 && i < next.length; i++){
+      state.squad[i] = next[i].id;
+    }
+
+    render();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    if(!confirm('Clear the lead, squad, bench, and all play counts? This cannot be undone.')) return;
+    state = defaultState();
+    nextId = 1;
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
